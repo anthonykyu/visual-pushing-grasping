@@ -5,28 +5,36 @@ import numpy as np
 import time
 import cv2
 from real.camera import Camera
-from robot import Robot
+# from robot import Robot
+from franka import Franka
 from scipy import optimize  
 from mpl_toolkits.mplot3d import Axes3D  
+
+from frankapy import FrankaArm
 
 
 # User options (change me)
 # --------------- Setup options ---------------
-tcp_host_ip = '100.127.7.223' # IP and port to robot arm as TCP client (UR5)
-tcp_port = 30002
-rtc_host_ip = '100.127.7.223' # IP and port to robot arm as real-time client (UR5)
-rtc_port = 30003
-workspace_limits = np.asarray([[0.3, 0.748], [0.05, 0.4], [-0.2, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+# tcp_host_ip = '100.127.7.223' # IP and port to robot arm as TCP client (UR5)
+# tcp_port = 30002
+# rtc_host_ip = '100.127.7.223' # IP and port to robot arm as real-time client (UR5)
+# rtc_port = 30003
+workspace_limits = np.asarray([[0.14273662+0.25, 0.658929158-0.15], [-0.37338492+0.15, 0.37420559-0.15], [0.01125959+0.15, 0.4]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 calib_grid_step = 0.05
-checkerboard_offset_from_tool = [0,-0.13,0.02]
-tool_orientation = [-np.pi/2,0,0] # [0,-2.22,2.22] # [2.22,2.22,0]
+# checkerboard_offset_from_tool = [0,-0.13,0.02]        # from vpg repo
+checkerboard_offset_from_tool = [0.02275, 0, -0.0732]
+"""
+from franka calibration scripts
+rotation=np.array([[0, 0, 1],[1, 0, 0],[0, 1, 0]]),
+translation=np.array([0.02275, 0, -0.0732]
+"""
+tool_orientation = [0, -np.pi/2, np.pi/2] # [0,-2.22,2.22] # [2.22,2.22,0]
 # ---------------------------------------------
 
-
 # Construct 3D calibration grid across workspace
-gridspace_x = np.linspace(workspace_limits[0][0], workspace_limits[0][1], 1 + (workspace_limits[0][1] - workspace_limits[0][0])/calib_grid_step)
-gridspace_y = np.linspace(workspace_limits[1][0], workspace_limits[1][1], 1 + (workspace_limits[1][1] - workspace_limits[1][0])/calib_grid_step)
-gridspace_z = np.linspace(workspace_limits[2][0], workspace_limits[2][1], 1 + (workspace_limits[2][1] - workspace_limits[2][0])/calib_grid_step)
+gridspace_x = np.linspace(workspace_limits[0][0], workspace_limits[0][1], int(1 + (workspace_limits[0][1] - workspace_limits[0][0])/calib_grid_step))
+gridspace_y = np.linspace(workspace_limits[1][0], workspace_limits[1][1], int(1 + (workspace_limits[1][1] - workspace_limits[1][0])/calib_grid_step))
+gridspace_z = np.linspace(workspace_limits[2][0], workspace_limits[2][1], int(1 + (workspace_limits[2][1] - workspace_limits[2][0])/calib_grid_step))
 calib_grid_x, calib_grid_y, calib_grid_z = np.meshgrid(gridspace_x, gridspace_y, gridspace_z)
 num_calib_grid_pts = calib_grid_x.shape[0]*calib_grid_x.shape[1]*calib_grid_x.shape[2]
 calib_grid_x.shape = (num_calib_grid_pts,1)
@@ -40,17 +48,14 @@ observed_pix = []
 
 # Move robot to home pose
 print('Connecting to robot...')
-robot = Robot(False, None, None, workspace_limits,
-              tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-              False, None, None)
+# robot = Robot(False, None, None, workspace_limits,
+#               tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
+#               False, None, None)
+robot = Franka(workspace_limits, is_sim=False)
 robot.open_gripper()
 
-# Slow down robot
-robot.joint_acc = 1.4
-robot.joint_vel = 1.05
-
 # Make robot gripper point upwards
-robot.move_joints([-np.pi, -np.pi/2, np.pi/2, 0, np.pi/2, np.pi])
+robot.move_joints([-1.71001372, -1.64870363,  1.53391208, -2.07034574, 0.12218504, 2.17892166, 2.29791981])
 
 # Move robot to each calibration point in workspace
 print('Collecting data...')
@@ -89,8 +94,8 @@ for calib_pt_idx in range(num_calib_grid_pts):
         # vis = cv2.drawChessboardCorners(robot.camera.color_data, checkerboard_size, corners_refined, checkerboard_found)
         vis = cv2.drawChessboardCorners(bgr_color_data, (1,1), corners_refined[4,:,:], checkerboard_found)
         cv2.imwrite('%06d.png' % len(measured_pts), vis)
-        cv2.imshow('Calibration',vis)
-        cv2.waitKey(10)
+        # cv2.imshow('Calibration',vis)
+        # cv2.waitKey(10)
 
 # Move robot back to home pose
 robot.go_home()
