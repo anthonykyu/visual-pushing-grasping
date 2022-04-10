@@ -220,9 +220,7 @@ def angle2rotm(angle, axis, point=None):
     R = np.diag([cosa, cosa, cosa])
     R += np.outer(axis, axis) * (1.0 - cosa)
     axis *= sina
-    R += np.array([[ 0.0,     -axis[2],  axis[1]],
-                      [ axis[2], 0.0,      -axis[0]],
-                      [-axis[1], axis[0],  0.0]])
+    R = R + np.array([[ 0.0, -axis[2], axis[1]],[ axis[2], 0.0, -axis[0]],[-axis[1], axis[0],  0.0]])
     M = np.identity(4)
     M[:3, :3] = R
     if point is not None:

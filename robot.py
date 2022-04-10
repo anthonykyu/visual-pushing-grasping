@@ -10,9 +10,9 @@ from frankapy import FrankaArm
 from autolab_core import RigidTransform
 
 class Robot(object):
-    def __init__(self, is_sim, obj_mesh_dir, num_obj, workspace_limits,
+    def __init__(self, obj_mesh_dir, num_obj, workspace_limits,
                  tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-                 is_testing, test_preset_cases, test_preset_file):
+                 is_testing, test_preset_cases, test_preset_file, is_sim=False):
 
         self.fa = FrankaArm()
 
@@ -43,17 +43,21 @@ class Robot(object):
             self.tool_pose_tolerance = [0.002,0.002,0.002,0.01,0.01,0.01]
 
             # Move robot to home pose
+            print("Closing Gripper")
             self.close_gripper()
+            print("Going Home")
             self.go_home()
+            print("Opening Gripper")
+            self.open_gripper()
 
-            # Fetch RGB-D data from RealSense camera
-            from real.camera import Camera
-            self.camera = Camera()
-            self.cam_intrinsics = self.camera.intrinsics
+            # # Fetch RGB-D data from RealSense camera
+            # from real.camera import Camera
+            # self.camera = Camera()
+            # self.cam_intrinsics = self.camera.intrinsics
 
-            # Load camera pose (from running calibrate.py), intrinsics and depth scale
-            self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
-            self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
+            # # Load camera pose (from running calibrate.py), intrinsics and depth scale
+            # self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
+            # self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
 
 
     def get_task_score(self):
@@ -108,7 +112,7 @@ class Robot(object):
             R = substate.rotation
             rpy = utils.rotm2euler(R)
 
-            return np.array([t[1], t[2], t[3], rpy[1], rpy[2], rpy[3]])
+            return np.array([t[0], t[1], t[2], rpy[0], rpy[1], rpy[2]])
 
         def parse_tool_data(substate):
             return substate
@@ -159,7 +163,7 @@ class Robot(object):
                 R = self.fa.get_pose().rotation
             else:
                 R = utils.euler2rotm(tool_orientation)
-            pose = RigidTransform(rotation=R, translation=tool_position, from_frame='world', to_frame='franka_tool')
+            pose = RigidTransform(rotation=R, translation=tool_position, from_frame='franka_tool', to_frame='world')
             self.fa.goto_pose(pose)
 
     
@@ -214,7 +218,7 @@ class Robot(object):
             # grasp_success =  tool_analog_input2 > 0.26
 
             # home_position = [0.49,0.11,0.03]
-            bin_position = [0.5,-0.45,0.1]
+            bin_position = [0.3,0.2,0.2]
 
             # If gripper is open, drop object in bin and check if grasp is successful
             grasp_success = False
