@@ -18,7 +18,7 @@ class Franka(object):
         self.workspace_limits = workspace_limits
 
         # If in simulation...
-        if self.is_sim:
+        if self.is_sim is True:
             pass
 
         # If in real-settings...
@@ -52,10 +52,10 @@ class Franka(object):
             from real.camera import Camera
             self.camera = Camera()
             self.cam_intrinsics = self.camera.intrinsics
-
+            print("Check")
             # Load camera pose (from running calibrate.py), intrinsics and depth scale
-            # self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
-            # self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
+            self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
+            self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
 
 
     def get_task_score(self):
@@ -86,7 +86,7 @@ class Franka(object):
 
     def get_camera_data(self):
 
-        if self.is_sim:
+        if self.is_sim is True:
             pass
             
         else:
@@ -125,7 +125,7 @@ class Franka(object):
 
     def close_gripper(self, asynch=False):
 
-        if self.is_sim:
+        if self.is_sim is True:
             pass
             
         else:
@@ -141,7 +141,7 @@ class Franka(object):
 
     def open_gripper(self, asynch=False):
 
-        if self.is_sim:
+        if self.is_sim is True:
             pass
         else:
             self.fa.open_gripper()
@@ -154,7 +154,7 @@ class Franka(object):
         return state_data
 
     def move_to(self, tool_position, tool_orientation):
-        if self.is_sim:
+        if self.is_sim is True:
             pass
         else:
             if tool_orientation is None:
@@ -179,7 +179,7 @@ class Franka(object):
     def grasp(self, position, heightmap_rotation_angle, workspace_limits):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
 
-        if self.is_sim:
+        if self.is_sim is True:
             pass
             
         else:
@@ -210,7 +210,7 @@ class Franka(object):
 
             # Check if gripper is open (grasp might be successful)
             width = self.fa.get_gripper_width()
-            gripper_open = width > 0.005
+            gripper_open = width > 0.0050
 
             # # Check if grasp is successful
             # grasp_success =  tool_analog_input2 > 0.26
@@ -240,7 +240,7 @@ class Franka(object):
     def push(self, position, heightmap_rotation_angle, workspace_limits):
         print('Executing: push at (%f, %f, %f)' % (position[0], position[1], position[2]))
 
-        if self.is_sim:
+        if self.is_sim is True:
             pass
         else:
 

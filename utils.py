@@ -65,6 +65,8 @@ def get_heightmap(color_img, depth_img, cam_intrinsics, cam_pose, workspace_limi
     depth_heightmap = np.zeros(heightmap_size)
     heightmap_pix_x = np.floor((surface_pts[:,0] - workspace_limits[0][0])/heightmap_resolution).astype(int)
     heightmap_pix_y = np.floor((surface_pts[:,1] - workspace_limits[1][0])/heightmap_resolution).astype(int)
+    print(heightmap_pix_x)
+    print(heightmap_pix_y)
     color_heightmap_r[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[0]]
     color_heightmap_g[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[1]]
     color_heightmap_b[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[2]]

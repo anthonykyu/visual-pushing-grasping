@@ -44,3 +44,11 @@ elif input == "6":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     robot = Robot(False,False,False,workspace_limits,False,False,False,False,False,False,False)
     robot.push([0.5, 0, 0.02], 0, workspace_limits)
+
+
+# azure_kinect_overhead
+# world
+# 0.724615 0.007335 0.863543
+# 0.001284 0.999785 -0.020679
+# 0.999944 -0.001480 -0.009480
+# -0.009509 -0.020670 -0.999732

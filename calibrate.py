@@ -19,8 +19,8 @@ from frankapy import FrankaArm
 # tcp_port = 30002
 # rtc_host_ip = '100.127.7.223' # IP and port to robot arm as real-time client (UR5)
 # rtc_port = 30003
-workspace_limits = np.asarray([[0.14273662+0.25, 0.658929158-0.15], [-0.37338492+0.15, 0.37420559-0.15], [0.01125959+0.15, 0.4]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-calib_grid_step = 0.05
+workspace_limits = np.asarray([[0.14273662+0.25, 0.658929158-0.15], [-0.37338492+0.15, 0.37420559-0.3], [0.01125959+0.15, 0.4]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+calib_grid_step = 0.1
 # checkerboard_offset_from_tool = [0,-0.13,0.02]        # from vpg repo
 checkerboard_offset_from_tool = [0.02275, 0, -0.0732]
 """

@@ -12,7 +12,8 @@ import cv2
 from collections import namedtuple
 import torch
 from torch.autograd import Variable
-from robot import Robot
+# from robot import Robot
+from franka import Franka
 from trainer import Trainer
 from logger import Logger
 import utils
@@ -65,9 +66,7 @@ def main(args):
     np.random.seed(random_seed)
 
     # Initialize pick-and-place system (camera and robot)
-    robot = Robot(is_sim, obj_mesh_dir, num_obj, workspace_limits,
-                  tcp_host_ip, tcp_port, rtc_host_ip, rtc_port,
-                  is_testing, test_preset_cases, test_preset_file)
+    robot = Franka(False, workspace_limits)
 
     # Initialize trainer
     trainer = Trainer(method, push_rewards, future_reward_discount,
