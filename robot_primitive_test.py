@@ -1,24 +1,25 @@
-from robot import Robot
+from franka import Franka
 import numpy as np
+workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 input = input("Which test:")
 if input == "1":
-    robot = Robot(False,False,False,False,False,False,False,False,False,False,False)
+    robot = Franka(False,workspace_limits)
 elif input == "2":
-    robot = Robot(False,False,False,False,False,False,False,False,False,False,False)
+    robot = Franka(False,workspace_limits)
     joints = robot.get_state()['joints'] + [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
     robot.move_joints(joints)
     robot.close_gripper()
     robot.open_gripper()
     robot.go_home()
 elif input == "3":
-    robot = Robot(False,False,False,False,False,False,False,False,False,False,False)
+    robot = Franka(False,workspace_limits)
     state = robot.get_state()
     pose = robot.parse_state_data(state,'pose')
     robot.close_gripper()
     while True:
         pose = pose + [0.0,0.0,0.05,0,0,0]
         robot.move_to(pose[0:3],pose[3:])
-        
+
         # robot.open_gripper()
         # robot.go_home()
 elif input == "4":
@@ -32,18 +33,18 @@ elif input == "4":
     # z min = 0.01125959
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 
-    robot = Robot(False,False,False,False,False,False,False,False,False,False,False)
+    robot = Franka(False,workspace_limits)
     state = robot.get_state()
     pose = robot.parse_state_data(state,'pose')
     print(pose)
 elif input == "5":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-    robot = Robot(False,False,False,workspace_limits,False,False,False,False,False,False,False)
-    robot.grasp([0.5, 0.0, 0.05], 0, workspace_limits)
+    robot = Franka(False,workspace_limits)
+    robot.grasp([0.5, 0.0, 0.05], np.pi/2, workspace_limits)
 elif input == "6":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-    robot = Robot(False,False,False,workspace_limits,False,False,False,False,False,False,False)
-    robot.push([0.5, 0, 0.02], 0, workspace_limits)
+    robot = Franka(False,workspace_limits)
+    robot.push([0.5, 0, 0.2], np.pi, workspace_limits)
 
 
 # azure_kinect_overhead

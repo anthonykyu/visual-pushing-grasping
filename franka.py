@@ -88,7 +88,7 @@ class Franka(object):
 
         if self.is_sim is True:
             pass
-            
+
         else:
             # Get color and depth image from ROS service
             color_img, depth_img = self.camera.get_data()
@@ -100,7 +100,7 @@ class Franka(object):
 
     def parse_state_data(self, state_data, subpackage):
         substate = state_data[subpackage]
-        
+
         def parse_joint_data(substate):
             return substate
 
@@ -127,9 +127,9 @@ class Franka(object):
 
         if self.is_sim is True:
             pass
-            
+
         else:
-            
+
             self.fa.close_gripper()
             if asynch:
                 gripper_fully_closed = True
@@ -164,7 +164,7 @@ class Franka(object):
             pose = RigidTransform(rotation=R, translation=tool_position, from_frame='franka_tool', to_frame='world')
             self.fa.goto_pose(pose)
 
-    
+
 
     def move_joints(self, joint_configuration):
         self.fa.goto_joints(joint_configuration)
@@ -181,15 +181,16 @@ class Franka(object):
 
         if self.is_sim is True:
             pass
-            
+
         else:
 
             # Compute tool orientation from heightmap rotation angle
-            grasp_orientation = [1.0,0.0]
+            # grasp_orientation = [1.0,0.0]
             if heightmap_rotation_angle > np.pi:
                 heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
-            tool_rotation_angle = heightmap_rotation_angle/2
-            tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
+            # tool_rotation_angle = heightmap_rotation_angle/2
+            tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
+            # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
             tool_orientation_angle = np.linalg.norm(tool_orientation)
             tool_orientation_axis = tool_orientation/tool_orientation_angle
             tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
@@ -246,11 +247,7 @@ class Franka(object):
 
             # Compute tool orientation from heightmap rotation angle
             push_orientation = [1.0,0.0]
-            tool_rotation_angle = heightmap_rotation_angle/2
-            tool_orientation = np.asarray([push_orientation[0]*np.cos(tool_rotation_angle) - push_orientation[1]*np.sin(tool_rotation_angle), push_orientation[0]*np.sin(tool_rotation_angle) + push_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
-            tool_orientation_angle = np.linalg.norm(tool_orientation)
-            tool_orientation_axis = tool_orientation/tool_orientation_angle
-            tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
+            tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
 
             # Compute push direction and endpoint (push to right of rotated heightmap)
             push_direction = np.asarray([push_orientation[0]*np.cos(heightmap_rotation_angle) - push_orientation[1]*np.sin(heightmap_rotation_angle), push_orientation[0]*np.sin(heightmap_rotation_angle) + push_orientation[1]*np.cos(heightmap_rotation_angle), 0.0])
@@ -259,26 +256,17 @@ class Franka(object):
             push_endpoint = np.asarray([target_x, target_y, position[2]])
             push_direction.shape = (3,1)
 
-            # Compute tilted tool orientation during push
-            tilt_axis = np.dot(utils.euler2rotm(np.asarray([0,0,np.pi/2]))[:3,:3], push_direction)
-            tilt_rotm = utils.angle2rotm(-np.pi/8, tilt_axis, point=None)[:3,:3]
-            tilted_tool_orientation_rotm = np.dot(tilt_rotm, tool_orientation_rotm)
-            tilted_tool_orientation_axis_angle = utils.rotm2angle(tilted_tool_orientation_rotm)
-            tilted_tool_orientation = tilted_tool_orientation_axis_angle[0]*np.asarray(tilted_tool_orientation_axis_angle[1:4])
-
             # Push only within workspace limits
             position = np.asarray(position).copy()
             position[0] = min(max(position[0], workspace_limits[0][0]), workspace_limits[0][1])
             position[1] = min(max(position[1], workspace_limits[1][0]), workspace_limits[1][1])
             position[2] = max(position[2] + 0.005, workspace_limits[2][0] + 0.005) # Add buffer to surface
 
-            # home_position = [0.49,0.11,0.03]
-
             # Attempt push
             self.close_gripper()
             self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
             self.move_to(position, tool_orientation)
-            self.move_to(push_endpoint, tilted_tool_orientation)
+            self.move_to(push_endpoint, tool_orientation)
             self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
             self.go_home()
 
@@ -319,7 +307,7 @@ class Franka(object):
         # self.tcp_socket.send(str.encode(tcp_command))
         # self.tcp_socket.close()
 
-        
+
 
         # Block until robot reaches box grabbing position and gripper fingers have stopped moving
         state_data = self.get_state()
