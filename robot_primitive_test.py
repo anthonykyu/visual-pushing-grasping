@@ -45,6 +45,10 @@ elif input == "6":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     robot = Franka(False,workspace_limits)
     robot.push([0.5, 0, 0.2], np.pi, workspace_limits)
+elif input == "7":
+    workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+    robot = Franka(workspace_limits)
+    robot.restart_real()
 
 
 # azure_kinect_overhead

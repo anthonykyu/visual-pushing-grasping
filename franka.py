@@ -4,6 +4,7 @@ import struct
 import time
 import os
 import numpy as np
+from yaml import dump
 import utils
 from simulation import vrep
 from frankapy import FrankaArm
@@ -17,45 +18,22 @@ class Franka(object):
         self.is_sim = is_sim
         self.workspace_limits = workspace_limits
 
-        # If in simulation...
-        if self.is_sim is True:
-            pass
+        # Move robot to home pose
+        print("Closing Gripper")
+        self.close_gripper()
+        print("Going Home")
+        self.go_home()
+        print("Opening Gripper")
+        self.open_gripper()
 
-        # If in real-settings...
-        else:
-
-            self.home_joint_config = [0, -np.pi/4, 0, -3*np.pi/4, 0, np.pi/2, np.pi/4]
-
-            # Default joint speed configuration
-            self.joint_acc = 1.4 # Faster: 8
-            self.joint_vel = 1.05 # Faster: 3
-
-            # Joint tolerance for blocking calls
-            self.joint_tolerance = 0.01
-
-            # Default tool speed configuration
-            self.tool_acc = 0.5 # Faster: 1.2
-            self.tool_vel = 0.2 # Faster: 0.25
-
-            # Tool pose tolerance for blocking calls
-            self.tool_pose_tolerance = [0.002,0.002,0.002,0.01,0.01,0.01]
-
-            # Move robot to home pose
-            print("Closing Gripper")
-            self.close_gripper()
-            print("Going Home")
-            self.go_home()
-            print("Opening Gripper")
-            self.open_gripper()
-
-            # Fetch RGB-D data from RealSense camera
-            from real.camera import Camera
-            self.camera = Camera()
-            self.cam_intrinsics = self.camera.intrinsics
-            print("Check")
-            # Load camera pose (from running calibrate.py), intrinsics and depth scale
-            self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
-            self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
+        # Fetch RGB-D data from RealSense camera
+        from real.camera import Camera
+        self.camera = Camera()
+        self.cam_intrinsics = self.camera.intrinsics
+        print("Check")
+        # Load camera pose (from running calibrate.py), intrinsics and depth scale
+        self.cam_pose = np.loadtxt('real/camera_pose.txt', delimiter=' ')
+        self.cam_depth_scale = np.loadtxt('real/camera_depth_scale.txt', delimiter=' ')
 
 
     def get_task_score(self):
@@ -85,15 +63,10 @@ class Franka(object):
 
 
     def get_camera_data(self):
-
-        if self.is_sim is True:
-            pass
-
-        else:
-            # Get color and depth image from ROS service
-            color_img, depth_img = self.camera.get_data()
-            # color_img = self.camera.color_data.copy()
-            # depth_img = self.camera.depth_data.copy()
+        # Get color and depth image from ROS service
+        color_img, depth_img = self.camera.get_data()
+        # color_img = self.camera.color_data.copy()
+        # depth_img = self.camera.depth_data.copy()
 
         return color_img, depth_img
 
@@ -124,29 +97,19 @@ class Franka(object):
 
 
     def close_gripper(self, asynch=False):
-
-        if self.is_sim is True:
-            pass
-
+        self.fa.close_gripper()
+        if asynch:
+            gripper_fully_closed = True
         else:
-
-            self.fa.close_gripper()
-            if asynch:
-                gripper_fully_closed = True
-            else:
-                time.sleep(1.5)
-                gripper_fully_closed = True
+            time.sleep(1.5)
+            gripper_fully_closed = True
 
         return gripper_fully_closed
 
     def open_gripper(self, asynch=False):
-
-        if self.is_sim is True:
-            pass
-        else:
-            self.fa.open_gripper()
-            if not asynch:
-                time.sleep(1.5)
+        self.fa.open_gripper()
+        if not asynch:
+            time.sleep(1.5)
 
 
     def get_state(self):
@@ -154,86 +117,69 @@ class Franka(object):
         return state_data
 
     def move_to(self, tool_position, tool_orientation):
-        if self.is_sim is True:
-            pass
+        if tool_orientation is None:
+            R = self.fa.get_pose().rotation
         else:
-            if tool_orientation is None:
-                R = self.fa.get_pose().rotation
-            else:
-                R = utils.euler2rotm(tool_orientation)
-            pose = RigidTransform(rotation=R, translation=tool_position, from_frame='franka_tool', to_frame='world')
-            self.fa.goto_pose(pose)
-
-
+            R = utils.euler2rotm(tool_orientation)
+        pose = RigidTransform(rotation=R, translation=tool_position, from_frame='franka_tool', to_frame='world')
+        self.fa.goto_pose(pose)
 
     def move_joints(self, joint_configuration):
         self.fa.goto_joints(joint_configuration)
 
     def go_home(self):
         self.fa.reset_joints()
-        # self.move_joints(self.home_joint_config)
-
 
     # Primitives ----------------------------------------------------------
 
     def grasp(self, position, heightmap_rotation_angle, workspace_limits):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
+        # Compute tool orientation from heightmap rotation angle
+        # grasp_orientation = [1.0,0.0]
+        if heightmap_rotation_angle > np.pi:
+            heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
+        # tool_rotation_angle = heightmap_rotation_angle/2
+        tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
+        # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
+        tool_orientation_angle = np.linalg.norm(tool_orientation)
+        tool_orientation_axis = tool_orientation/tool_orientation_angle
+        tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
 
-        if self.is_sim is True:
-            pass
+        # Compute tilted tool orientation during dropping into bin
+        tilt_rotm = utils.euler2rotm(np.asarray([-np.pi/4,0,0]))
+        tilted_tool_orientation_rotm = np.dot(tilt_rotm, tool_orientation_rotm)
+        tilted_tool_orientation_axis_angle = utils.rotm2angle(tilted_tool_orientation_rotm)
+        tilted_tool_orientation = tilted_tool_orientation_axis_angle[0]*np.asarray(tilted_tool_orientation_axis_angle[1:4])
+
+        # Attempt grasp
+        position = np.asarray(position).copy()
+        position[2] = max(position[2] - 0.05, workspace_limits[2][0])
+        self.open_gripper()
+        self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
+        self.move_to([position[0], position[1], position[2]], tool_orientation)
+        self.close_gripper()
+
+        # Check if gripper is open (grasp might be successful)
+        width = self.fa.get_gripper_width()
+        gripper_open = width > 0.0050
+
+        # home_position = [0.49,0.11,0.03]
+        bin_position = [0.3,0.2,0.2]
+
+        # If gripper is open, drop object in bin and check if grasp is successful
+        grasp_success = False
+        if gripper_open:
+            self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
+            self.move_to([position[0], position[1], bin_position[2]], tool_orientation)
+            self.move_to([bin_position[0], bin_position[1], bin_position[2]], tilted_tool_orientation)
+            self.open_gripper()
+            self.go_home()
+            grasp_success = True
 
         else:
-
-            # Compute tool orientation from heightmap rotation angle
-            # grasp_orientation = [1.0,0.0]
-            if heightmap_rotation_angle > np.pi:
-                heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
-            # tool_rotation_angle = heightmap_rotation_angle/2
-            tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
-            # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
-            tool_orientation_angle = np.linalg.norm(tool_orientation)
-            tool_orientation_axis = tool_orientation/tool_orientation_angle
-            tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
-
-            # Compute tilted tool orientation during dropping into bin
-            tilt_rotm = utils.euler2rotm(np.asarray([-np.pi/4,0,0]))
-            tilted_tool_orientation_rotm = np.dot(tilt_rotm, tool_orientation_rotm)
-            tilted_tool_orientation_axis_angle = utils.rotm2angle(tilted_tool_orientation_rotm)
-            tilted_tool_orientation = tilted_tool_orientation_axis_angle[0]*np.asarray(tilted_tool_orientation_axis_angle[1:4])
-
-            # Attempt grasp
-            position = np.asarray(position).copy()
-            position[2] = max(position[2] - 0.05, workspace_limits[2][0])
-            self.open_gripper()
             self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
-            self.move_to([position[0], position[1], position[2]], tool_orientation)
-            self.close_gripper()
-
-            # Check if gripper is open (grasp might be successful)
-            width = self.fa.get_gripper_width()
-            gripper_open = width > 0.0050
-
-            # # Check if grasp is successful
-            # grasp_success =  tool_analog_input2 > 0.26
-
-            # home_position = [0.49,0.11,0.03]
-            bin_position = [0.3,0.2,0.2]
-
-            # If gripper is open, drop object in bin and check if grasp is successful
-            grasp_success = False
-            if gripper_open:
-
-                self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
-                self.move_to([position[0], position[1], bin_position[2]], tool_orientation)
-                self.move_to([bin_position[0], bin_position[1], bin_position[2]], tilted_tool_orientation)
-                self.open_gripper()
-                self.go_home()
-                grasp_success = True
-
-            else:
-                self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
-                self.open_gripper()
-                self.go_home()
+            self.open_gripper()
+            self.go_home()
 
         return grasp_success
 
@@ -241,37 +187,36 @@ class Franka(object):
     def push(self, position, heightmap_rotation_angle, workspace_limits):
         print('Executing: push at (%f, %f, %f)' % (position[0], position[1], position[2]))
 
-        if self.is_sim is True:
-            pass
-        else:
+        # Compute tool orientation from heightmap rotation angle
+        push_orientation = [1.0,0.0]
+        if heightmap_rotation_angle > np.pi:
+            heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
 
-            # Compute tool orientation from heightmap rotation angle
-            push_orientation = [1.0,0.0]
-            tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
+        tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
 
-            # Compute push direction and endpoint (push to right of rotated heightmap)
-            push_direction = np.asarray([push_orientation[0]*np.cos(heightmap_rotation_angle) - push_orientation[1]*np.sin(heightmap_rotation_angle), push_orientation[0]*np.sin(heightmap_rotation_angle) + push_orientation[1]*np.cos(heightmap_rotation_angle), 0.0])
-            target_x = min(max(position[0] + push_direction[0]*0.1, workspace_limits[0][0]), workspace_limits[0][1])
-            target_y = min(max(position[1] + push_direction[1]*0.1, workspace_limits[1][0]), workspace_limits[1][1])
-            push_endpoint = np.asarray([target_x, target_y, position[2]])
-            push_direction.shape = (3,1)
+        # Compute push direction and endpoint (push to right of rotated heightmap)
+        push_direction = np.asarray([push_orientation[0]*np.cos(heightmap_rotation_angle) - push_orientation[1]*np.sin(heightmap_rotation_angle), push_orientation[0]*np.sin(heightmap_rotation_angle) + push_orientation[1]*np.cos(heightmap_rotation_angle), 0.0])
+        target_x = min(max(position[0] + push_direction[0]*0.1, workspace_limits[0][0]), workspace_limits[0][1])
+        target_y = min(max(position[1] + push_direction[1]*0.1, workspace_limits[1][0]), workspace_limits[1][1])
+        push_endpoint = np.asarray([target_x, target_y, position[2]])
+        push_direction.shape = (3,1)
 
-            # Push only within workspace limits
-            position = np.asarray(position).copy()
-            position[0] = min(max(position[0], workspace_limits[0][0]), workspace_limits[0][1])
-            position[1] = min(max(position[1], workspace_limits[1][0]), workspace_limits[1][1])
-            position[2] = max(position[2] + 0.005, workspace_limits[2][0] + 0.005) # Add buffer to surface
+        # Push only within workspace limits
+        position = np.asarray(position).copy()
+        position[0] = min(max(position[0], workspace_limits[0][0]), workspace_limits[0][1])
+        position[1] = min(max(position[1], workspace_limits[1][0]), workspace_limits[1][1])
+        position[2] = max(position[2] + 0.005, workspace_limits[2][0] + 0.005) # Add buffer to surface
 
-            # Attempt push
-            self.close_gripper()
-            self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
-            self.move_to(position, tool_orientation)
-            self.move_to(push_endpoint, tool_orientation)
-            self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
-            self.go_home()
+        # Attempt push
+        self.close_gripper()
+        self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
+        self.move_to(position, tool_orientation)
+        self.move_to(push_endpoint, tool_orientation)
+        self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
+        self.go_home()
 
-            push_success = True
-            time.sleep(0.5)
+        push_success = True
+        time.sleep(0.5)
 
         return push_success
 
@@ -279,20 +224,24 @@ class Franka(object):
     def restart_real(self):
 
         # Compute tool orientation from heightmap rotation angle
-        grasp_orientation = [1.0,0.0]
-        tool_rotation_angle = -np.pi/4
-        tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
-        tool_orientation_angle = np.linalg.norm(tool_orientation)
-        tool_orientation_axis = tool_orientation/tool_orientation_angle
-        tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
+        # grasp_orientation = [1.0,0.0]
+        # tool_rotation_angle = -np.pi/4
+        # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
+        # tool_orientation_angle = np.linalg.norm(tool_orientation)
+        # tool_orientation_axis = tool_orientation/tool_orientation_angle
+        # tool_orientation_rotm = utils.angle2rotm(tool_orientation_angle, tool_orientation_axis, point=None)[:3,:3]
 
-        tilt_rotm = utils.euler2rotm(np.asarray([-np.pi/4,0,0]))
-        tilted_tool_orientation_rotm = np.dot(tilt_rotm, tool_orientation_rotm)
-        tilted_tool_orientation_axis_angle = utils.rotm2angle(tilted_tool_orientation_rotm)
-        tilted_tool_orientation = tilted_tool_orientation_axis_angle[0]*np.asarray(tilted_tool_orientation_axis_angle[1:4])
+        # tilt_rotm = utils.euler2rotm(np.asarray([-np.pi/4,0,0]))
+        # tilted_tool_orientation_rotm = np.dot(tilt_rotm, tool_orientation_rotm)
+        # tilted_tool_orientation_axis_angle = utils.rotm2angle(tilted_tool_orientation_rotm)
+        # tilted_tool_orientation = tilted_tool_orientation_axis_angle[0]*np.asarray(tilted_tool_orientation_axis_angle[1:4])
+
+        # Default tool position (rotated to grab box in back)
+        # tool_orientation = np.asarray([np.pi, 0, np.pi/2])
 
         # Move to box grabbing position
-        box_grab_position = [0.5,-0.35,-0.12]
+        # box_grab_position = [0.5,-0.35,-0.12]
+        # bin_position = [0.3,0.2,0.2]
 
         # go to cartesian end point -  need to implement
 
@@ -310,19 +259,19 @@ class Franka(object):
 
 
         # Block until robot reaches box grabbing position and gripper fingers have stopped moving
-        state_data = self.get_state()
-        tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
-        while True:
-            state_data = self.get_state()
-            new_tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
-            actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
-            if tool_analog_input2 < 3.7 and (abs(new_tool_analog_input2 - tool_analog_input2) < 0.01) and all([np.abs(actual_tool_pose[j] - box_grab_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
-                break
-            tool_analog_input2 = new_tool_analog_input2
+        # state_data = self.get_state()
+        # tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+        # while True:
+        #     state_data = self.get_state()
+        #     new_tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+        #     actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
+        #     if tool_analog_input2 < 3.7 and (abs(new_tool_analog_input2 - tool_analog_input2) < 0.01) and all([np.abs(actual_tool_pose[j] - box_grab_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
+        #         break
+        #     tool_analog_input2 = new_tool_analog_input2
 
         # Move to box release position
-        box_release_position = [0.5,0.08,-0.12]
-        home_position = [0.49,0.11,0.03]
+        # box_release_position = [0.5,0.08,-0.12]
+        # home_position = [0.49,0.11,0.03]
 
         # go to cartesian end point -  need to implement
         # self.tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -342,12 +291,38 @@ class Franka(object):
         # self.tcp_socket.close()
 
         # Block until robot reaches home position
-        state_data = self.get_state()
-        tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
-        while True:
-            state_data = self.get_state()
-            new_tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
-            actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
-            if tool_analog_input2 > 3.0 and (abs(new_tool_analog_input2 - tool_analog_input2) < 0.01) and all([np.abs(actual_tool_pose[j] - home_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
-                break
-            tool_analog_input2 = new_tool_analog_input2
+        # state_data = self.get_state()
+        # tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+        # while True:
+        #     state_data = self.get_state()
+        #     new_tool_analog_input2 = self.parse_tcp_state_data(state_data, 'tool_data')
+        #     actual_tool_pose = self.parse_tcp_state_data(state_data, 'cartesian_info')
+        #     if tool_analog_input2 > 3.0 and (abs(new_tool_analog_input2 - tool_analog_input2) < 0.01) and all([np.abs(actual_tool_pose[j] - home_position[j]) < self.tool_pose_tolerance[j] for j in range(3)]):
+        #         break
+        #     tool_analog_input2 = new_tool_analog_input2
+
+        # Tool orientations
+        default_orientation = np.asarray([np.pi, 0, np.pi/2])
+        dump_orientation = np.asarray([np.pi/4, 0, np.pi/2]) # I think this is right but we need to test
+
+        # Move to box grabbing position
+        box_above_position = [0.5,-0.35,0.2] # Determine this first
+        box_grab_position = [0.5,-0.35,0.1] # Determine this first
+        box_dump_position = [0.5,-0.35,0.3] #Determine this first
+
+        # Idea: Move above the box_grab position, then move down to the grab position, close, up again, move to drop position, tilt, untilt, back to above, down, up, reset
+        self.move_to(box_above_position,default_orientation)
+        self.move_to(box_grab_position,default_orientation)
+        self.close_gripper()
+        self.move_to(box_above_position,default_orientation)
+        self.move_to(box_dump_position,default_orientation)
+        self.move_to(box_dump_position,dump_orientation)
+        self.move_to(box_dump_position,default_orientation)
+        self.move_to(box_above_position,default_orientation)
+        self.move_to(box_grab_position,default_orientation)
+        self.open_gripper()
+        self.go_home()
+        
+
+
+
