@@ -186,7 +186,9 @@ class Franka(object):
 
             # Compute tool orientation from heightmap rotation angle
             # grasp_orientation = [1.0,0.0]
-            if heightmap_rotation_angle > np.pi:
+            if heightmap_rotation_angle <= -2.86482202:
+                heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
+            elif heightmap_rotation_angle >= 2.85264372:
                 heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
             # tool_rotation_angle = heightmap_rotation_angle/2
             tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
@@ -247,6 +249,10 @@ class Franka(object):
 
             # Compute tool orientation from heightmap rotation angle
             push_orientation = [1.0,0.0]
+            if heightmap_rotation_angle <= -2.86482202:
+                heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
+            elif heightmap_rotation_angle >= 2.85264372:
+                heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
             tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
 
             # Compute push direction and endpoint (push to right of rotated heightmap)

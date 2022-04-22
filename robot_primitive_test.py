@@ -6,11 +6,12 @@ if input == "1":
     robot = Franka(False,workspace_limits)
 elif input == "2":
     robot = Franka(False,workspace_limits)
-    joints = robot.get_state()['joints'] + [0.1,0.1,0.1,0.1,0.1,0.1,0.1]
-    robot.move_joints(joints)
-    robot.close_gripper()
-    robot.open_gripper()
-    robot.go_home()
+    joints = robot.get_state()['joints']
+    print(joints)
+    # robot.move_joints(joints)
+    # robot.close_gripper()
+    # robot.open_gripper()
+    # robot.go_home()
 elif input == "3":
     robot = Franka(False,workspace_limits)
     state = robot.get_state()
@@ -40,7 +41,7 @@ elif input == "4":
 elif input == "5":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     robot = Franka(False,workspace_limits)
-    robot.grasp([0.5, 0.0, 0.05], np.pi/2, workspace_limits)
+    robot.grasp([0.5, 0.0, 0.05], -np.pi, workspace_limits)
 elif input == "6":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     robot = Franka(False,workspace_limits)

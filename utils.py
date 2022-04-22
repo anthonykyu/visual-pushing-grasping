@@ -41,6 +41,8 @@ def get_heightmap(color_img, depth_img, cam_intrinsics, cam_pose, workspace_limi
 
     # Compute heightmap size
     heightmap_size = np.round(((workspace_limits[1][1] - workspace_limits[1][0])/heightmap_resolution, (workspace_limits[0][1] - workspace_limits[0][0])/heightmap_resolution)).astype(int)
+    heightmap_size[0]+=1
+    heightmap_size[1]+=1
 
     # Get 3D point cloud from RGB-D images
     surface_pts, color_pts = get_pointcloud(color_img, depth_img, cam_intrinsics)
@@ -65,8 +67,14 @@ def get_heightmap(color_img, depth_img, cam_intrinsics, cam_pose, workspace_limi
     depth_heightmap = np.zeros(heightmap_size)
     heightmap_pix_x = np.floor((surface_pts[:,0] - workspace_limits[0][0])/heightmap_resolution).astype(int)
     heightmap_pix_y = np.floor((surface_pts[:,1] - workspace_limits[1][0])/heightmap_resolution).astype(int)
-    print(heightmap_pix_x)
-    print(heightmap_pix_y)
+
+    print(np.max(heightmap_pix_x))
+    print(np.max(heightmap_pix_y))
+    print("color heightmap shapes")
+    print(color_heightmap_r.shape)
+    print(color_heightmap_g.shape)
+    print(color_heightmap_b.shape)
+
     color_heightmap_r[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[0]]
     color_heightmap_g[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[1]]
     color_heightmap_b[heightmap_pix_y,heightmap_pix_x] = color_pts[:,[2]]
@@ -173,11 +181,11 @@ def euler2rotm(theta):
     R_y = np.array([[math.cos(theta[1]),    0,      math.sin(theta[1])  ],
                     [0,                     1,      0                   ],
                     [-math.sin(theta[1]),   0,      math.cos(theta[1])  ]
-                    ])         
+                    ])
     R_z = np.array([[math.cos(theta[2]),    -math.sin(theta[2]),    0],
                     [math.sin(theta[2]),    math.cos(theta[2]),     0],
                     [0,                     0,                      1]
-                    ])            
+                    ])
     R = np.dot(R_z, np.dot( R_y, R_x ))
     return R
 
@@ -189,11 +197,11 @@ def isRotm(R) :
     I = np.identity(3, dtype = R.dtype)
     n = np.linalg.norm(I - shouldBeIdentity)
     return n < 1e-4
- 
- 
+
+
 # Calculates rotation matrix to euler angles
 def rotm2euler(R) :
- 
+
     assert(isRotm(R))
 
     sy = math.sqrt(R[0,0] * R[0,0] +  R[1,0] * R[1,0])
@@ -207,7 +215,7 @@ def rotm2euler(R) :
         x = math.atan2(-R[1,2], R[1,1])
         y = math.atan2(-R[2,0], sy)
         z = 0
- 
+
     return np.array([x, y, z])
 
 
@@ -288,7 +296,7 @@ def rotm2angle(R):
     # As we have reached here there are no singularities so we can handle normally
     s = np.sqrt((R[2][1] - R[1][2])*(R[2][1] - R[1][2]) + (R[0][2] - R[2][0])*(R[0][2] - R[2][0]) + (R[1][0] - R[0][1])*(R[1][0] - R[0][1])) # used to normalise
     if (abs(s) < 0.001):
-        s = 1 
+        s = 1
 
     # Prevent divide by zero, should not happen if matrix is orthogonal and should be
     # Caught by singularity test above, but I've left it in just in case
