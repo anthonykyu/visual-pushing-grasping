@@ -35,7 +35,7 @@ def main(args):
     else:
         # workspace_limits = np.asarray([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
         # workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-        workspace_limits = np.asarray([[0.14273662+0.1, 0.658929158-0.1], [-0.37338492+0.1, 0.37420559-0.1], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+        workspace_limits = np.asarray([[0.14273662+0.1, 0.658929158-0.1], [-0.15, 0.37420559-0.1], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
 
     heightmap_resolution = args.heightmap_resolution # Meters per pixel of heightmap
     random_seed = args.random_seed

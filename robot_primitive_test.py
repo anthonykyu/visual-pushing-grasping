@@ -6,8 +6,9 @@ if input == "1":
     robot = Franka(False,workspace_limits)
 elif input == "2":
     robot = Franka(False,workspace_limits)
-    joints = robot.get_state()['joints']
-    print(joints)
+    state = robot.get_state()
+    pose = robot.parse_state_data(state,'pose')
+    print(pose)
     # robot.move_joints(joints)
     # robot.close_gripper()
     # robot.open_gripper()
@@ -49,7 +50,9 @@ elif input == "6":
 elif input == "7":
     workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     robot = Franka(workspace_limits)
-    robot.restart_real()
+    for i in range(0,1):
+        robot.restart_real()
+        print("Completed: ", i)
 
 
 # azure_kinect_overhead
