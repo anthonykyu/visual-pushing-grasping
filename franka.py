@@ -15,12 +15,11 @@ class Franka(object):
 
         self.fa = FrankaArm()
 
-        self.is_sim = is_sim
         self.workspace_limits = workspace_limits
 
         # Move robot to home pose
-        print("Closing Gripper")
-        self.close_gripper()
+        # print("Closing Gripper")
+        # self.close_gripper()
         print("Going Home")
         self.go_home()
         print("Opening Gripper")
@@ -212,6 +211,7 @@ class Franka(object):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
         # Compute tool orientation from heightmap rotation angle
         # grasp_orientation = [1.0,0.0]
+        heightmap_rotation_angle += np.pi/2
         if heightmap_rotation_angle > np.pi:
                 heightmap_rotation_angle = heightmap_rotation_angle - np.pi
 
@@ -263,15 +263,22 @@ class Franka(object):
         return grasp_success
 
 
-    def push(self, position, heightmap_rotation_angle, workspace_limits):
+    def push(self, position, heightmap_rotation_angle, workspace_limits,heightmap_resolution):
         print('Executing: push at (%f, %f, %f)' % (position[0], position[1], position[2]))
+
+        # Determine locations before push
+        color_img, depth_img = self.get_camera_data()
+        depth_img = depth_img * self.cam_depth_scale
+        color_heightmap, depth_heightmap = utils.get_heightmap(color_img,depth_img,self.cam_intrinsics,self.cam_pose,workspace_limits,heightmap_resolution)
+        valid_depth_heightmap = depth_heightmap.copy()
+        valid_depth_heightmap[np.isnan(valid_depth_heightmap)] = 0
+        stuff_count_before = np.zeros(valid_depth_heightmap.shape)
+        stuff_count_before[valid_depth_heightmap > 0.028] = 1
 
         # Compute tool orientation from heightmap rotation angle
         push_orientation = [1.0,0.0]
-        # if heightmap_rotation_angle <= -2.2:
-        #         heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
-        # elif heightmap_rotation_angle >= -2.2 + 2*np.pi:
-        #     heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
+
+        heightmap_rotation_angle += np.pi/2
         if heightmap_rotation_angle > np.pi:
                 heightmap_rotation_angle = heightmap_rotation_angle - np.pi
                 push_orientation = [-1.0, 0.0]
@@ -299,8 +306,23 @@ class Franka(object):
         self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
         self.go_home()
 
-        push_success = True
-        time.sleep(0.5)
+        # Determine locations after push
+        color_img, depth_img = self.get_camera_data()
+        depth_img = depth_img *self.cam_depth_scale
+        color_heightmap, depth_heightmap = utils.get_heightmap(color_img,depth_img,self.cam_intrinsics,self.cam_pose,workspace_limits,heightmap_resolution)
+        valid_depth_heightmap = depth_heightmap.copy()
+        valid_depth_heightmap[np.isnan(valid_depth_heightmap)] = 0
+        stuff_count_after = np.zeros(valid_depth_heightmap.shape)
+        stuff_count_after[valid_depth_heightmap > 0.028] = 1
+
+        # Determine if push is a success
+        differences = np.sum(np.abs(stuff_count_after - stuff_count_before))
+        print("Pixel differences: ", differences)
+        push_success = False
+        if differences > 400:
+            push_success = True
+
+        # time.sleep(0.5)
 
         return push_success
 

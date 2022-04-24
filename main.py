@@ -116,7 +116,7 @@ def main(args):
                     explore_actions = np.random.uniform() < explore_prob
                     if explore_actions: # Exploitation (do best action) vs exploration (do other action)
                         print('Strategy: explore (exploration probability: %f)' % (explore_prob))
-                        nonlocal_variables['primitive_action'] = 'push' if np.random.randint(0,2) == 0 else 'grasp'
+                        nonlocal_variables['primitive_action'] = 'push' if np.random.randint(0,3) == 0 else 'grasp'
                     else:
                         print('Strategy: exploit (exploration probability: %f)' % (explore_prob))
                 trainer.is_exploit_log.append([0 if explore_actions else 1])
@@ -162,7 +162,7 @@ def main(args):
 
                 # If pushing, adjust start position, and make sure z value is safe and not too low
                 if nonlocal_variables['primitive_action'] == 'push': # or nonlocal_variables['primitive_action'] == 'place':
-                    finger_width = 0.02
+                    finger_width = 0.05
                     safe_kernel_width = int(np.round((finger_width/2)/heightmap_resolution))
                     local_region = valid_depth_heightmap[max(best_pix_y - safe_kernel_width, 0):min(best_pix_y + safe_kernel_width + 1, valid_depth_heightmap.shape[0]), max(best_pix_x - safe_kernel_width, 0):min(best_pix_x + safe_kernel_width + 1, valid_depth_heightmap.shape[1])]
                     if local_region.size == 0:
@@ -198,7 +198,7 @@ def main(args):
                 # Execute primitive
                 if nonlocal_variables['primitive_action'] == 'push':
                     primitive_position[2] = 0.02
-                    nonlocal_variables['push_success'] = robot.push(primitive_position, best_rotation_angle, workspace_limits)
+                    nonlocal_variables['push_success'] = robot.push(primitive_position, best_rotation_angle, workspace_limits,heightmap_resolution)
                     print('Push successful: %r' % (nonlocal_variables['push_success']))
                 elif nonlocal_variables['primitive_action'] == 'grasp':
                     nonlocal_variables['grasp_success'] = robot.grasp(primitive_position, best_rotation_angle, workspace_limits)

@@ -20,8 +20,8 @@ class Camera(object):
     def __init__(self):
 
         # Data options (change me)
-        self.im_height = 1536
-        self.im_width = 2048
+        self.im_height = 720
+        self.im_width = 1280
         self.rgb_image_msg = None
         self.depth_image_msg = None
         # self.tcp_host_ip = '127.0.0.1'
