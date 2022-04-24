@@ -211,13 +211,13 @@ class Franka(object):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
         # Compute tool orientation from heightmap rotation angle
         # grasp_orientation = [1.0,0.0]
-        heightmap_rotation_angle += np.pi/2
+        # heightmap_rotation_angle += np.pi/2
         if heightmap_rotation_angle > np.pi:
                 heightmap_rotation_angle = heightmap_rotation_angle - np.pi
 
         # tool_rotation_angle = heightmap_rotation_angle/2
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
-        print(tool_orientation)
+        print("Z orientation", tool_orientation[2])
         # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
         tool_orientation_angle = np.linalg.norm(tool_orientation)
         tool_orientation_axis = tool_orientation/tool_orientation_angle
@@ -236,10 +236,11 @@ class Franka(object):
         self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
         self.move_to([position[0], position[1], position[2]], tool_orientation)
         self.close_gripper()
+        self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
 
         # Check if gripper is open (grasp might be successful)
         width = self.fa.get_gripper_width()
-        print(width)
+        # print(width)
         gripper_open = width > 0.0050
 
         # home_position = [0.49,0.11,0.03]
@@ -248,15 +249,12 @@ class Franka(object):
         # If gripper is open, drop object in bin and check if grasp is successful
         grasp_success = False
         if gripper_open:
-            self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
             self.move_to([position[0], position[1], bin_position[2]], tool_orientation)
             self.move_to([bin_position[0], bin_position[1], bin_position[2]], tool_orientation)
             self.open_gripper()
             self.go_home()
             grasp_success = True
-
         else:
-            self.move_to([position[0], position[1], position[2]+0.1], tool_orientation)
             self.open_gripper()
             self.go_home()
 
@@ -278,13 +276,13 @@ class Franka(object):
         # Compute tool orientation from heightmap rotation angle
         push_orientation = [1.0,0.0]
 
-        heightmap_rotation_angle += np.pi/2
+        # heightmap_rotation_angle += np.pi/2
         if heightmap_rotation_angle > np.pi:
                 heightmap_rotation_angle = heightmap_rotation_angle - np.pi
                 push_orientation = [-1.0, 0.0]
 
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
-
+        print("Z orientation", tool_orientation[2])
         # Compute push direction and endpoint (push to right of rotated heightmap)
         push_direction = np.asarray([push_orientation[0]*np.cos(heightmap_rotation_angle) - push_orientation[1]*np.sin(heightmap_rotation_angle), push_orientation[0]*np.sin(heightmap_rotation_angle) + push_orientation[1]*np.cos(heightmap_rotation_angle), 0.0])
         target_x = min(max(position[0] + push_direction[0]*0.1, workspace_limits[0][0]), workspace_limits[0][1])
@@ -339,6 +337,7 @@ class Franka(object):
         box_reset_position = [0.612, -0.183, 0.55]
 
         # Idea: Move above the box_grab position, then move down to the grab position, close, up again, move to drop position, tilt, untilt, back to above, down, up, reset
+        self.open_gripper()
         self.move_to(box_above_position,default_orientation)
         self.move_to(box_grab_position,default_orientation)
         self.close_gripper()

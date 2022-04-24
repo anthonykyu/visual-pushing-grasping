@@ -197,7 +197,7 @@ def main(args):
 
                 # Execute primitive
                 if nonlocal_variables['primitive_action'] == 'push':
-                    primitive_position[2] = 0.02
+                    primitive_position[2] = 0.013
                     nonlocal_variables['push_success'] = robot.push(primitive_position, best_rotation_angle, workspace_limits,heightmap_resolution)
                     print('Push successful: %r' % (nonlocal_variables['push_success']))
                 elif nonlocal_variables['primitive_action'] == 'grasp':
@@ -246,7 +246,7 @@ def main(args):
         # plt.show()
 
         empty_threshold = 150
-        print(np.sum(stuff_count))
+        # print(np.sum(stuff_count))
         if is_sim and is_testing:
             empty_threshold = 10
         if np.sum(stuff_count) < empty_threshold or (is_sim and no_change_count[0] + no_change_count[1] > 10):
@@ -388,7 +388,7 @@ def main(args):
             # Save model snapshot
             if not is_testing:
                 logger.save_backup_model(trainer.model, method)
-                if trainer.iteration % 50 == 0:
+                if trainer.iteration % 25 == 0:
                     logger.save_model(trainer.iteration, trainer.model, method)
                     if trainer.use_cuda:
                         trainer.model = trainer.model.cuda()

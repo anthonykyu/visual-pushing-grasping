@@ -6,6 +6,8 @@ logs/*
 downloads/server
 downloads/*.pth
 
+*.pth
+
 
 realsense/CMakeFiles/*
 realsense/CMakeCache.txt
