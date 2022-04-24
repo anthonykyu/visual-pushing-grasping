@@ -22,7 +22,7 @@ class Franka(object):
         print("Closing Gripper")
         self.close_gripper()
         print("Going Home")
-        # self.go_home()
+        self.go_home()
         print("Opening Gripper")
         self.open_gripper()
 
@@ -212,13 +212,12 @@ class Franka(object):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
         # Compute tool orientation from heightmap rotation angle
         # grasp_orientation = [1.0,0.0]
-        if heightmap_rotation_angle <= -np.pi/2:
-                heightmap_rotation_angle = -np.pi/2
-        elif heightmap_rotation_angle >= np.pi/2:
-            heightmap_rotation_angle = np.pi/2
+        if heightmap_rotation_angle > np.pi:
+                heightmap_rotation_angle = heightmap_rotation_angle - np.pi
 
         # tool_rotation_angle = heightmap_rotation_angle/2
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
+        print(tool_orientation)
         # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
         tool_orientation_angle = np.linalg.norm(tool_orientation)
         tool_orientation_axis = tool_orientation/tool_orientation_angle
@@ -269,10 +268,13 @@ class Franka(object):
 
         # Compute tool orientation from heightmap rotation angle
         push_orientation = [1.0,0.0]
-        if heightmap_rotation_angle <= -2.2:
-                heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
-        elif heightmap_rotation_angle >= -2.2 + 2*np.pi:
-            heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
+        # if heightmap_rotation_angle <= -2.2:
+        #         heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
+        # elif heightmap_rotation_angle >= -2.2 + 2*np.pi:
+        #     heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
+        if heightmap_rotation_angle > np.pi:
+                heightmap_rotation_angle = heightmap_rotation_angle - np.pi
+                push_orientation = [-1.0, 0.0]
 
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
 
