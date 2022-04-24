@@ -22,7 +22,7 @@ class Franka(object):
         print("Closing Gripper")
         self.close_gripper()
         print("Going Home")
-        self.go_home()
+        # self.go_home()
         print("Opening Gripper")
         self.open_gripper()
 
@@ -212,10 +212,11 @@ class Franka(object):
         print('Executing: grasp at (%f, %f, %f)' % (position[0], position[1], position[2]))
         # Compute tool orientation from heightmap rotation angle
         # grasp_orientation = [1.0,0.0]
-        if heightmap_rotation_angle <= -2.2:
-                heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
-        elif heightmap_rotation_angle >= 4.4:
-            heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
+        if heightmap_rotation_angle <= -np.pi/2:
+                heightmap_rotation_angle = -np.pi/2
+        elif heightmap_rotation_angle >= np.pi/2:
+            heightmap_rotation_angle = np.pi/2
+
         # tool_rotation_angle = heightmap_rotation_angle/2
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])
         # tool_orientation = np.asarray([grasp_orientation[0]*np.cos(tool_rotation_angle) - grasp_orientation[1]*np.sin(tool_rotation_angle), grasp_orientation[0]*np.sin(tool_rotation_angle) + grasp_orientation[1]*np.cos(tool_rotation_angle), 0.0])*np.pi
@@ -239,6 +240,7 @@ class Franka(object):
 
         # Check if gripper is open (grasp might be successful)
         width = self.fa.get_gripper_width()
+        print(width)
         gripper_open = width > 0.0050
 
         # home_position = [0.49,0.11,0.03]
@@ -269,7 +271,7 @@ class Franka(object):
         push_orientation = [1.0,0.0]
         if heightmap_rotation_angle <= -2.2:
                 heightmap_rotation_angle = heightmap_rotation_angle + 2*np.pi
-        elif heightmap_rotation_angle >= 4.4:
+        elif heightmap_rotation_angle >= -2.2 + 2*np.pi:
             heightmap_rotation_angle = heightmap_rotation_angle - 2*np.pi
 
         tool_orientation = np.asarray([np.pi, 0, heightmap_rotation_angle])

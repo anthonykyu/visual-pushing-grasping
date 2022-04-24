@@ -35,7 +35,8 @@ def main(args):
     else:
         # workspace_limits = np.asarray([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
         # workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-        workspace_limits = np.asarray([[0.14273662+0.1, 0.658929158-0.1], [-0.15, 0.37420559-0.1], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+        # workspace_limits = np.asarray([[0.14273662+0.1, 0.658929158-0.1], [-0.15, 0.37420559-0.1], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
+        workspace_limits = np.asarray([[0.34, 0.69], [-0.1, 0.25], [0.01125959, 0.75]])
 
     heightmap_resolution = args.heightmap_resolution # Meters per pixel of heightmap
     random_seed = args.random_seed
@@ -188,13 +189,17 @@ def main(args):
                     logger.save_visualizations(trainer.iteration, grasp_pred_vis, 'grasp')
                     cv2.imwrite('visualization.grasp.png', grasp_pred_vis)
 
-                # Initialize variables that influence reward
+                # Initialize variables that influence rewardplt.imshow(valid_depth_heightmap)
+        # plt.show()
+        # plt.imshow(stuff_count)
+        # plt.show()
                 nonlocal_variables['push_success'] = False
                 nonlocal_variables['grasp_success'] = False
                 change_detected = False
 
                 # Execute primitive
                 if nonlocal_variables['primitive_action'] == 'push':
+                    primitive_position[2] = 0.02
                     nonlocal_variables['push_success'] = robot.push(primitive_position, best_rotation_angle, workspace_limits)
                     print('Push successful: %r' % (nonlocal_variables['push_success']))
                 elif nonlocal_variables['primitive_action'] == 'grasp':
@@ -235,8 +240,15 @@ def main(args):
 
         # Reset simulation or pause real-world training if table is empty
         stuff_count = np.zeros(valid_depth_heightmap.shape)
-        stuff_count[valid_depth_heightmap > 0.02] = 1
-        empty_threshold = 300
+        stuff_count[valid_depth_heightmap > 0.028] = 1
+
+        # plt.imshow(valid_depth_heightmap)
+        # plt.show()
+        # plt.imshow(stuff_count)
+        # plt.show()
+
+        empty_threshold = 150
+        print(np.sum(stuff_count))
         if is_sim and is_testing:
             empty_threshold = 10
         if np.sum(stuff_count) < empty_threshold or (is_sim and no_change_count[0] + no_change_count[1] > 10):
@@ -450,3 +462,4 @@ if __name__ == '__main__':
     # Run main program with specified arguments
     args = parser.parse_args()
     main(args)
+0.034726

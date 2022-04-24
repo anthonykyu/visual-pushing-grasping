@@ -126,9 +126,9 @@ class Trainer(object):
         assert(color_heightmap_2x.shape[0:2] == depth_heightmap_2x.shape[0:2])
 
         # Add extra padding (to handle rotations inside network)
-        diag_length = float(color_heightmap_2x.shape[0]) * np.sqrt(2)
-        diag_length = np.ceil(diag_length/32)*32
-        padding_width = int((diag_length - color_heightmap_2x.shape[0])/2)
+        self.diag_length = float(color_heightmap_2x.shape[0]) * np.sqrt(2)
+        self.diag_length = np.ceil(self.diag_length/32)*32
+        padding_width = int((self.diag_length - color_heightmap_2x.shape[0])/2)
         color_heightmap_2x_r =  np.pad(color_heightmap_2x[:,:,0], padding_width, 'constant', constant_values=0)
         color_heightmap_2x_r.shape = (color_heightmap_2x_r.shape[0], color_heightmap_2x_r.shape[1], 1)
         color_heightmap_2x_g =  np.pad(color_heightmap_2x[:,:,1], padding_width, 'constant', constant_values=0)
@@ -305,27 +305,31 @@ class Trainer(object):
         elif self.method == 'reinforcement':
 
             # Compute labels
-            label = np.zeros((1,400,272))
+            label = np.zeros((1,int(self.diag_length/2),int(self.diag_length/2)))
             # label = np.zeros((1,320,320))
-            action_area = np.zeros((275,159))
+            action_area = np.zeros((color_heightmap.shape[0],color_heightmap.shape[1]))
             # action_area = np.zeros((224,224))
             action_area[best_pix_ind[1]][best_pix_ind[2]] = 1
             # blur_kernel = np.ones((5,5),np.float32)/25
             # action_area = cv2.filter2D(action_area, -1, blur_kernel)
             # tmp_label = np.zeros((224,224))
-            tmp_label = np.zeros((275,159))
+            tmp_label = np.zeros((color_heightmap.shape[0],color_heightmap.shape[1]))
             tmp_label[action_area > 0] = label_value
             # label[0,48:(400-48),48:(272-48)] = tmp_label
-            label[0,63:(400-62),57:(272-56)] = tmp_label
+            tmp_label_idx_1_1 = int(np.ceil((self.diag_length/2 - color_heightmap.shape[0])/2))
+            tmp_label_idx_1_2 = int(((self.diag_length/2)-np.floor((self.diag_length/2 - color_heightmap.shape[0])/2)))
+            tmp_label_idx_2_1 = int(np.ceil((self.diag_length/2 - color_heightmap.shape[1])/2))
+            tmp_label_idx_2_2 = int(((self.diag_length/2)-np.floor((self.diag_length/2 - color_heightmap.shape[1])/2)))
+            label[0,tmp_label_idx_1_1:tmp_label_idx_1_2,tmp_label_idx_2_1:tmp_label_idx_2_2] = tmp_label
             # label[0,48:(320-48),48:(320-48)] = tmp_label
 
             # Compute label mask
             label_weights = np.zeros(label.shape)
             # tmp_label_weights = np.zeros((224,224))
-            tmp_label_weights = np.zeros((275,159))
+            tmp_label_weights = np.zeros((color_heightmap.shape[0],color_heightmap.shape[1]))
             tmp_label_weights[action_area > 0] = 1
             # label_weights[0,48:(400-48),48:(272-48)] = tmp_label_weights
-            label_weights[0,63:(400-62),57:(272-56)] = tmp_label_weights
+            label_weights[0,tmp_label_idx_1_1:tmp_label_idx_1_2,tmp_label_idx_2_1:tmp_label_idx_2_2] = tmp_label_weights
             # label_weights[0,48:(320-48),48:(320-48)] = tmp_label_weights
 
             # Compute loss and backward pass
@@ -337,10 +341,10 @@ class Trainer(object):
                 push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=best_pix_ind[0])
 
                 if self.use_cuda:
-                    loss = self.criterion(self.model.output_prob[0][0].view(1,400,272), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][0].view(1,self.model.output_prob[0][0].shape[2],self.model.output_prob[0][0].shape[3]), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                     # loss = self.criterion(self.model.output_prob[0][0].view(1,320,320), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                 else:
-                    loss = self.criterion(self.model.output_prob[0][0].view(1,400,272), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][0].view(1,int(self.diag_length/2),int(self.diag_length/2)), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
                     # loss = self.criterion(self.model.output_prob[0][0].view(1,320,320), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
                 loss = loss.sum()
                 loss.backward()
@@ -352,10 +356,10 @@ class Trainer(object):
                 push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=best_pix_ind[0])
 
                 if self.use_cuda:
-                    loss = self.criterion(self.model.output_prob[0][1].view(1,400,272), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][1].view(1,int(self.diag_length/2),int(self.diag_length/2)), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                     # loss = self.criterion(self.model.output_prob[0][1].view(1,320,320), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                 else:
-                    loss = self.criterion(self.model.output_prob[0][1].view(1,400,272), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][1].view(1,int(self.diag_length/2),int(self.diag_length/2)), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
                     # loss = self.criterion(self.model.output_prob[0][1].view(1,320,320), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
                 loss = loss.sum()
                 loss.backward()
@@ -366,10 +370,10 @@ class Trainer(object):
                 push_predictions, grasp_predictions, state_feat = self.forward(color_heightmap, depth_heightmap, is_volatile=False, specific_rotation=opposite_rotate_idx)
 
                 if self.use_cuda:
-                    loss = self.criterion(self.model.output_prob[0][1].view(1,400,272), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][1].view(1,int(self.diag_length/2),int(self.diag_length/2)), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                     # loss = self.criterion(self.model.output_prob[0][1].view(1,320,320), Variable(torch.from_numpy(label).float().cuda())) * Variable(torch.from_numpy(label_weights).float().cuda(),requires_grad=False)
                 else:
-                    loss = self.criterion(self.model.output_prob[0][1].view(1,400,272), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
+                    loss = self.criterion(self.model.output_prob[0][1].view(1,int(self.diag_length/2),int(self.diag_length/2)), Variable(torch.from_numpy(label).float())) * Variable(torch.from_numpy(label_weights).float(),requires_grad=False)
 
                 loss = loss.sum()
                 loss.backward()
