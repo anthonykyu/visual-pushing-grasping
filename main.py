@@ -116,7 +116,7 @@ def main(args):
                     explore_actions = np.random.uniform() < explore_prob
                     if explore_actions: # Exploitation (do best action) vs exploration (do other action)
                         print('Strategy: explore (exploration probability: %f)' % (explore_prob))
-                        nonlocal_variables['primitive_action'] = 'push' if np.random.randint(0,3) == 0 else 'grasp'
+                        nonlocal_variables['primitive_action'] = 'push' if np.random.randint(0,2) == 0 else 'grasp'
                     else:
                         print('Strategy: exploit (exploration probability: %f)' % (explore_prob))
                 trainer.is_exploit_log.append([0 if explore_actions else 1])
@@ -240,6 +240,8 @@ def main(args):
         stuff_count = np.zeros(valid_depth_heightmap.shape)
         stuff_count[valid_depth_heightmap > 0.028] = 1
 
+        # plt.imshow(color_heightmap)
+        # plt.show()
         # plt.imshow(valid_depth_heightmap)
         # plt.show()
         # plt.imshow(stuff_count)

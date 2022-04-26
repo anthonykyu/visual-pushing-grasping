@@ -251,6 +251,7 @@ class Franka(object):
         if gripper_open:
             self.move_to([position[0], position[1], bin_position[2]], tool_orientation)
             self.move_to([bin_position[0], bin_position[1], bin_position[2]], tool_orientation)
+            time.sleep(1)
             self.open_gripper()
             self.go_home()
             grasp_success = True

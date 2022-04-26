@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 
 # Plot options (change me)
-interval_size = 200 # Report performance over the last 200 training steps
-max_plot_iteration = 2500 # Maximum number of training steps to report performance
+interval_size = 5 # Report performance over the last 200 training steps
+max_plot_iteration = 50 # Maximum number of training steps to report performance
 
 # Parse session directories
 parser = argparse.ArgumentParser(description='Plot performance of a session over training time.')
@@ -24,7 +24,7 @@ colors = [[078.0/255.0,121.0/255.0,167.0/255.0], # blue
           [237.0/255.0,201.0/255.0,072.0/255.0], # yellow
           [242.0/255.0,142.0/255.0,043.0/255.0], # orange
           [176.0/255.0,122.0/255.0,161.0/255.0], # purple
-          [255.0/255.0,157.0/255.0,167.0/255.0], # pink 
+          [255.0/255.0,157.0/255.0,167.0/255.0], # pink
           [118.0/255.0,183.0/255.0,178.0/255.0], # cyan
           [156.0/255.0,117.0/255.0,095.0/255.0], # brown
           [186.0/255.0,176.0/255.0,172.0/255.0]] # gray
