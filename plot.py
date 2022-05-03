@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 
 # Plot options (change me)
-interval_size = 5 # Report performance over the last 200 training steps
-max_plot_iteration = 50 # Maximum number of training steps to report performance
+interval_size = 50 # Report performance over the last 200 training steps
+max_plot_iteration = 1100 # Maximum number of training steps to report performance
 
 # Parse session directories
 parser = argparse.ArgumentParser(description='Plot performance of a session over training time.')

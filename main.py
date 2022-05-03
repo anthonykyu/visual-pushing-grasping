@@ -34,7 +34,7 @@ def main(args):
     # workspace_limits = np.asarray([[0.3, 0.748], [-0.224, 0.224], [-0.255, -0.1]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     # workspace_limits = np.asarray([[0.14273662+0.05, 0.658929158-0.05], [-0.37338492+0.05, 0.37420559-0.05], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
     # workspace_limits = np.asarray([[0.14273662+0.1, 0.658929158-0.1], [-0.15, 0.37420559-0.1], [0.01125959, 0.75]]) # Cols: min max, Rows: x y z (define workspace limits in robot coordinates)
-    workspace_limits = np.asarray([[0.3, 0.65], [-0.1, 0.25], [0.01125959, 0.75]])
+    workspace_limits = np.asarray([[0.3, 0.65], [-0.1, 0.25], [0.00319317, 0.75]])
 
     heightmap_resolution = args.heightmap_resolution # Meters per pixel of heightmap
     random_seed = args.random_seed
@@ -238,7 +238,7 @@ def main(args):
 
         # Reset simulation or pause real-world training if table is empty
         stuff_count = np.zeros(valid_depth_heightmap.shape)
-        stuff_count[valid_depth_heightmap > 0.028] = 1
+        stuff_count[valid_depth_heightmap > 0.02] = 1
 
         # plt.imshow(color_heightmap)
         # plt.show()
@@ -462,4 +462,4 @@ if __name__ == '__main__':
     # Run main program with specified arguments
     args = parser.parse_args()
     main(args)
-0.034726
+# 0.034726
